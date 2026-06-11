@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contador de Vueltas</title>
+
+<style>
+body{
+background:#000;
+color:#fff;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+text-align:center;
+margin:15px;
+}
+
+#timer{
+font-size:72px;
+font-weight:bold;
+margin:20px 0;
+}
+
+button{
+border:none;
+border-radius:20px;
+color:white;
+font-weight:bold;
+}
+
+#start{
+background:#1f8b4c;
+padding:18px 28px;
+font-size:24px;
+}
+
+#reset{
+background:#b3261e;
+padding:18px 28px;
+font-size:24px;
+}
+
+#lap{
+background:#0a84ff;
+width:95%;
+max-width:500px;
+height:180px;
+font-size:52px;
+margin:15px 0;
+}
+
+ul{
+list-style:none;
+padding:0;
+max-width:700px;
+margin:auto;
+}
+
+li{
+background:#111;
+margin:8px 0;
+padding:14px;
+border-radius:12px;
+font-size:28px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏃 Contador de Vueltas</h1>
+
+<div id="timer">00:00:00</div>
+
+<button id="start" onclick="toggleTimer()">
+▶ Iniciar / Pausar
+</button>
+
+<button id="reset" onclick="resetAll()">
+⟲ Reiniciar
+</button>
+
+<br>
+
+<button id="lap" onclick="addLap()">
+VUELTA +
+</button>
+
+<h2>Vueltas</h2>
+
+<ul id="laps"></ul>
+
+<script>
+
+let seconds = Number(localStorage.getItem("seconds") || 0);
+let lapCount = Number(localStorage.getItem("lapCount") || 0);
+let running = localStorage.getItem("running") === "true";
+let laps = JSON.parse(localStorage.getItem("laps") || "[]");
+
+let interval = null;
+
+function formatTime(s){
+const h = String(Math.floor(s/3600)).padStart(2,"0");
+const m = String(Math.floor((s%3600)/60)).padStart(2,"0");
+const sec = String(s%60).padStart(2,"0");
+return `${h}:${m}:${sec}`;
+}
+
+function save(){
+localStorage.setItem("seconds",seconds);
+localStorage.setItem("lapCount",lapCount);
+localStorage.setItem("laps",JSON.stringify(laps));
+localStorage.setItem("running",running);
+}
+
+function render(){
+
+document.getElementById("timer").textContent =
+formatTime(seconds);
+
+const ul = document.getElementById("laps");
+
+ul.innerHTML = "";
+
+[...laps].reverse().forEach(x => {
+
+const li = document.createElement("li");
+
+li.textContent =
+`Vuelta ${x.number} — ${x.time}`;
+
+ul.appendChild(li);
+
+});
+}
+
+function speak(text){
+
+if("speechSynthesis" in window){
+
+speechSynthesis.cancel();
+
+const msg =
+new SpeechSynthesisUtterance(text);
+
+msg.lang = "es-CL";
+
+speechSynthesis.speak(msg);
+
+}
+}
+
+function startInterval(){
+
+interval = setInterval(() => {
+
+seconds++;
+
+save();
+
+render();
+
+},1000);
+}
+
+function toggleTimer(){
+
+if(running){
+
+clearInterval(interval);
+
+}else{
+
+startInterval();
+
+}
+
+running = !running;
+
+save();
+}
+
+function addLap(){
+
+if(!running) return;
+
+lapCount++;
+
+const t = formatTime(seconds);
+
+laps.push({
+number: lapCount,
+time: t
+});
+
+if(navigator.vibrate){
+
+navigator.vibrate(150);
+
+}
+
+speak(
+`Vuelta ${lapCount}. Tiempo ${t}`
+);
+
+save();
+
+render();
+}
+
+function resetAll(){
+
+clearInterval(interval);
+
+seconds = 0;
+
+lapCount = 0;
+
+laps = [];
+
+running = false;
+
+save();
+
+render();
+}
+
+render();
+
+if(running){
+
+startInterval();
+
+}
+
+</script>
+
+</body>
+</html>
